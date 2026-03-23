@@ -185,7 +185,7 @@
   <div class="pin-subtitle" id="pinSubtitle">ระบบแปลเอกสารทางการแพทย์ — Phyathai Sriracha</div>
   <div class="pin-infobox" id="pinInfoBox">
     <span class="pin-info-icon">📱</span>
-    <p>กรุณากำหนด PIN <strong>4–6 หลัก</strong> สำหรับเครื่องนี้<br>PIN จะถูกบันทึกไว้เฉพาะในเครื่องของคุณเท่านั้น<br>ไม่มีการส่งข้อมูลออกอินเทอร์เน็ต</p>
+    <p>กรุณากำหนด PIN <strong>4 หลัก</strong> สำหรับเครื่องนี้<br>PIN จะถูกบันทึกไว้เฉพาะในเครื่องของคุณเท่านั้น<br>ไม่มีการส่งข้อมูลออกอินเทอร์เน็ต</p>
   </div>
   <div class="pin-dots" id="pinDots"></div>
   <div class="pin-counter" id="pinCounter"></div>
@@ -1139,11 +1139,11 @@ function initPIN(){
 }
 
 function pinPress(d){
-  if(pinLocked||pinInput.length>=6)return;
+  if(pinLocked||pinInput.length>=4)return;
   pinInput+=d;
   updatePINDisplay();
   // Auto-submit for 'enter' mode at 4+ digits with short delay
-  if(pinMode==='enter'&&pinInput.length>=4){
+  if(pinMode==='enter'&&pinInput.length===4){
     clearTimeout(window._pinTimer);
     window._pinTimer=setTimeout(verifyPIN,350);
   }
@@ -1157,7 +1157,7 @@ function pinBackspace(){
 }
 
 function updatePINDisplay(){
-  const len=Math.max(4,pinInput.length);
+  const len=4;
   document.getElementById('pinDots').innerHTML=
     Array.from({length:len},(_,i)=>
       `<div class="pin-dot${i<pinInput.length?' filled':''}"></div>`
@@ -1165,7 +1165,7 @@ function updatePINDisplay(){
   const ctr=document.getElementById('pinCounter');
   if(ctr){
     if(pinInput.length>0){
-      ctr.textContent=`กรอกแล้ว ${pinInput.length} หลัก${pinInput.length>=4?' ✓':''}`;
+      ctr.textContent=`กรอกแล้ว ${pinInput.length}/4 หลัก${pinInput.length===4?' ✓':''}`;
       ctr.className='pin-counter active';
     }else{
       ctr.textContent='';
@@ -1202,18 +1202,18 @@ function verifyPIN(){
 function pinAction(){
   if(pinLocked)return;
   if(pinMode==='enter'){verifyPIN();return;}
-  if(pinInput.length<4){document.getElementById('pinError').textContent='❌ PIN ต้องมีอย่างน้อย 4 หลัก';return;}
+  if(pinInput.length<4){document.getElementById('pinError').textContent='❌ กรุณากรอก PIN 4 หลัก';return;}
   if(pinMode==='set'){
     pinTemp=pinInput;pinInput='';pinMode='confirm';
     document.getElementById('pinTitle').textContent='🔐 ยืนยัน PIN อีกครั้ง';
-    document.getElementById('pinSubtitle').textContent='กรอก PIN เดิมซ้ำเพื่อยืนยัน';
+    document.getElementById('pinSubtitle').textContent='กรอก PIN 4 หลักซ้ำเพื่อยืนยัน';
     document.getElementById('pinError').textContent='';
     updatePINDisplay();
   }else if(pinMode==='confirm'){
     if(pinInput===pinTemp){
       localStorage.setItem(PIN_KEY,pinSimpleHash(pinInput));
       document.getElementById('pinOverlay').style.display='none';
-      showStatus('success',`✅ ตั้ง PIN ${pinInput.length} หลักสำเร็จ — กรุณาจำ PIN ไว้ด้วยนะครับ`);
+      showStatus('success',`✅ ตั้ง PIN 4 หลักสำเร็จ — กรุณาจำ PIN ไว้ด้วยนะครับ`);
     }else{
       pinInput='';pinTemp='';pinMode='set';
       document.getElementById('pinTitle').textContent='🔐 ตั้ง PIN ใหม่';
@@ -1245,7 +1245,6 @@ function pinForgot(){
 // Run PIN init after DOM ready
 document.addEventListener('DOMContentLoaded', initPIN);
 // ═════════════════════════════════════════════════════════════════════
-}
 </script>
 </body>
 </html>

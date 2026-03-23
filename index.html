@@ -130,7 +130,11 @@
     .verif-field input,.verif-field textarea{width:100%;border:1.5px solid #d1d5db;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fafafa;transition:border-color .2s}
     .verif-field input:focus,.verif-field textarea:focus{outline:none;border-color:#006B5E;background:#fff;box-shadow:0 0 0 2px rgba(0,107,94,.08)}
     .verif-sig{margin-bottom:9px}
-    .verif-sig textarea{min-height:36px;resize:none;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;color:#1a1a1a}
+    .verif-sig-canvas{width:100%;height:70px;border:1.5px solid #d1d5db;border-radius:6px;background:#fafafa;cursor:crosshair;display:block;touch-action:none}
+    .verif-sig-canvas:focus{outline:none;border-color:#006B5E}
+    .verif-sig-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+    .verif-sig-clear{font-size:10px;color:#006B5E;background:none;border:1px solid #006B5E;border-radius:4px;padding:1px 7px;cursor:pointer;font-weight:600}
+    .verif-sig-clear:hover{background:#006B5E;color:#fff}
     .verif-cert{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px}
     .verif-cert input[type=checkbox]{width:15px;height:15px;accent-color:#006B5E;margin-top:2px;flex-shrink:0;cursor:pointer}
     .verif-cert label{font-size:11px;color:#1a1a1a;line-height:1.6;cursor:pointer}
@@ -505,8 +509,11 @@
           </div>
         </div>
         <div class="verif-sig verif-field">
-          <label>ลายเซ็น / Signature</label>
-          <textarea id="verifSig" rows="2" placeholder="พิมพ์ชื่อหรือตัวย่อลายเซ็น / Type name or initials"></textarea>
+          <div class="verif-sig-bar">
+            <label style="margin-bottom:0">ลายเซ็น / Signature</label>
+            <button class="verif-sig-clear" onclick="clearSigPad()">ล้าง</button>
+          </div>
+          <canvas id="verifSigPad" class="verif-sig-canvas" width="520" height="110"></canvas>
         </div>
         <div class="verif-cert">
           <input type="checkbox" id="verifCheck" />
@@ -589,7 +596,7 @@ function setResult(text){
   if(stamp)stamp.style.display='flex';
   // Show verification box + auto-fill date
   const vb=document.getElementById('verifBox');
-  if(vb){vb.style.display='block';const vd=document.getElementById('verifDate');if(vd&&!vd.value)vd.value=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});}
+  if(vb){vb.style.display='block';initSigPad();const vd=document.getElementById('verifDate');if(vd&&!vd.value)vd.value=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});}
 }
 function clearResult(){
   lastResult='';lastImgUrls=[];
@@ -600,7 +607,7 @@ function clearResult(){
   const stamp=document.getElementById('translationStamp');if(stamp)stamp.style.display='none';
   // Hide + reset verification box
   const vb=document.getElementById('verifBox');
-  if(vb){vb.style.display='none';['verifName','verifPos','verifDept','verifDate','verifSig'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const vc=document.getElementById('verifCheck');if(vc)vc.checked=false;}
+  if(vb){vb.style.display='none';['verifName','verifPos','verifDept','verifDate'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const vc=document.getElementById('verifCheck');if(vc)vc.checked=false;clearSigPad();}
   clearImg();
   document.getElementById('mainStatus').style.display='none';
 }
@@ -1053,7 +1060,7 @@ function getVerifData(){
     pos:document.getElementById('verifPos')?.value||'',
     dept:document.getElementById('verifDept')?.value||'',
     date:document.getElementById('verifDate')?.value||new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}),
-    sig:document.getElementById('verifSig')?.value||'',
+    sig:getSigDataUrl(),
     certified:document.getElementById('verifCheck')?.checked||false
   };
 }
@@ -1069,7 +1076,7 @@ function buildVerifHtml(v,fontSize='10px'){
           ${v.pos?`<tr><td style="padding:2px 6px 2px 0;color:#6b7280;font-weight:600;white-space:nowrap">ตำแหน่ง</td><td style="padding:2px 0;border-bottom:1px solid #eee">${v.pos}</td></tr>`:''}
           ${v.dept?`<tr><td style="padding:2px 6px 2px 0;color:#6b7280;font-weight:600;white-space:nowrap">แผนก</td><td style="padding:2px 0;border-bottom:1px solid #eee">${v.dept}</td></tr>`:''}
           <tr><td style="padding:2px 6px 2px 0;color:#6b7280;font-weight:600;white-space:nowrap">วันที่</td><td style="padding:2px 0;border-bottom:1px solid #eee">${v.date}</td></tr>
-          ${v.sig?`<tr><td style="padding:2px 6px 2px 0;color:#6b7280;font-weight:600;white-space:nowrap">ลายเซ็น</td><td style="padding:2px 0;font-style:italic">${v.sig}</td></tr>`:''}
+          ${v.sig?`<tr><td style="padding:2px 6px 2px 0;color:#6b7280;font-weight:600;white-space:nowrap;vertical-align:middle">ลายเซ็น</td><td style="padding:2px 0"><img src="${v.sig}" style="height:38px;width:auto;max-width:130px;display:block"></td></tr>`:''}
         </table>
         ${v.certified?`<div style="margin-top:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 8px;font-size:${fsSm};color:#166534">✅ รับรองว่าแปลถูกต้องและครบถ้วน<br><span style="color:#6b7280">I certify this translation is accurate — Phyathai Sriracha Hospital</span></div>`:''}
       </div>
@@ -1101,6 +1108,54 @@ ${imgHtml}
 <pre>${lastResult.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
 <script>window.onload=()=>window.print();<\/script></body></html>`);
   win.document.close();
+}
+
+
+// ══════════════ SIGNATURE PAD ══════════════════════════════════════════
+function initSigPad(){
+  const canvas=document.getElementById('verifSigPad');
+  if(!canvas||canvas._sigInit)return;
+  canvas._sigInit=true;
+  const ctx=canvas.getContext('2d');
+  let drawing=false,lastX=0,lastY=0;
+  function pos(e){
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    if(e.touches){return[(e.touches[0].clientX-r.left)*sx,(e.touches[0].clientY-r.top)*sy];}
+    return[(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
+  }
+  function start(e){drawing=true;[lastX,lastY]=pos(e);e.preventDefault();}
+  function move(e){
+    if(!drawing)return;e.preventDefault();
+    const[x,y]=pos(e);
+    ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);
+    ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.stroke();[lastX,lastY]=[x,y];
+  }
+  function stop(){drawing=false;}
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',stop);
+  canvas.addEventListener('mouseleave',stop);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',stop);
+}
+function clearSigPad(){
+  const c=document.getElementById('verifSigPad');
+  if(c)c.getContext('2d').clearRect(0,0,c.width,c.height);
+}
+function isSigEmpty(){
+  const c=document.getElementById('verifSigPad');
+  if(!c)return true;
+  const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+  for(let i=3;i<d.length;i+=4)if(d[i]>0)return false;
+  return true;
+}
+function getSigDataUrl(){
+  const c=document.getElementById('verifSigPad');
+  if(!c||isSigEmpty())return'';
+  return c.toDataURL('image/png');
 }
 
 // ══════════════ PIN LOCK SYSTEM ══════════════════════════════════════
